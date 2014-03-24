@@ -36,23 +36,25 @@ def checkARPSpoof(arp, pktNum) :
 	return
 
 def checkPortScanTCP(ip, tcp, pktNum) :
+	print 'source: ' + formatIP(ip.src)
+	print 'dest: ' + formatIP(ip.dst)
 	scan = PortScan()
-	scan.ip = ip.src
+	scan.src = ip.src
 	scan.num = pktNum
 	scan.port = tcp.dport
 	scan.dst = ip.dst
 	# if this ip is already in the table
-	if ip.dst in hostToPortMap :
+	if scan.src in hostToPortMap.keys() :
 		# if it is not a new port ignore it
-		for x in hostToPortMap[scan.dst] :
+		for x in hostToPortMap[scan.src] :
 			if x.port == scan.port :
 				return
 		# if it is a new port add it
-		hostToPortMap[scan.dst].append(scan)
+		hostToPortMap[scan.src].append(scan)
 	# if this ip is not already in the table
 	else : 
 		portList = [scan]
-		hostToPortMap[scan.dst] = portList
+		hostToPortMap[scan.src] = portList
 
 
 	return
@@ -91,16 +93,13 @@ for ipaddr in hostToPortMap :
 		firstPacket = hostToPortMap[ipaddr][0]
 		print formatIP(ipaddr)
 		packetList = []
-		print 'Warning: Port Scan detected on IP ' + formatIP(firstPacket.ip)
-		print 'Scanned by IP ' + formatIP(firstPacket.dst)
+		print 'Warning: Port Scan detected on IP ' + formatIP(firstPacket.dst)
+		print 'Scanned by IP ' + formatIP(firstPacket.src)
 		print 'Offending Packets: '
 		for scan in hostToPortMap[ipaddr] :	
 			packetList.append(scan.num)
 		print packetList
 
-#for key in hostToPortMap.keys() :
-#	for entry in hostToPortMap[key] :
-#		print entry.port
 		
 f.close()
 
