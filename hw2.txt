@@ -114,7 +114,7 @@ than they expect when they intend to visit the common site. This could be exploi
 directing the hosts to the competitor's website or blocking the hosts' access to a website that is important for the
 business to use to run effectively. This would be easiest for an attacker to do if the DNS server used sequential query
 IDs instead of random query IDs. It would also be easiest if the DNS server allowed recursive queries from outside the
-business, so that the bad guy can send DNS queries that the server will then forward to other servers.
+business, so that the attacker can send DNS queries that the server will then forward to other servers.
    For the DNS cache poisoning to work, the attacker could send a DNS query for the website/hostname that they want to block.
 If the DNS server allows recursive queries, it will then send the same request to another server higher up in the hierarchy.
 While the DNS server is requesting this information from other servers, the attacker floods the original DNS server with
@@ -127,4 +127,13 @@ QID. Then they just need to flood the DNS server with forged replies, starting w
 If they can do this more quickly than the legitimate nameserver, then the DNS server will cache this false reply and ignore
 the real one that it gets later. Until the cache entry expires when the TTL reaches 0, all of the hosts using the DNS
 server will be re-directed to the competitor's webserver when they attempt to reach the targeted hostname.
-
+2. Since the DNS server accepts A queries from any IP address, the competitor
+can also make queries.  If the attacker can detect the difference in response
+time between a DNS cache hit and cache miss, then they will know whether or
+not the website they request has been visited in the last 15 minutes.  The TTL
+value of 15 minutes will only allow for a rough estimate in this case, because
+even if multiple employees visit the site within that 15 minute period it will
+only be detected as one cache hit.  Also, the attacker's requests will cause
+the website to be added to the cache, so the attacker will have to wait 15
+minutes in between queries to avoid detecting their own visit to the site.  A
+shorter TTL would improve this estimate.

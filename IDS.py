@@ -59,7 +59,6 @@ def checkPortScan(ip, port, pktNum) :
 		hostToPortMap[scan.dst].append(scan)
 	# if this ip is not already in the table
 	else :
-		print 'Detecting port activity for new IP: ' + formatIP(scan.dst)
 		portList = [scan]
 		hostToPortMap[scan.dst] = portList
 	return
@@ -90,6 +89,7 @@ def checkSYNFlood(ip, tcp, pktNum, ts) :
 		q = [] 
 		q.append(tcppkt)
 		tcpSynMap[tcppkt.dst] = q
+
 	if len(tcpSynMap[tcppkt.dst]) > 100 :
 		print 'Warning: SYN flood detected'
 		print 'Source IP: ' + formatIP(tcppkt.src)
@@ -100,7 +100,6 @@ def checkSYNFlood(ip, tcp, pktNum, ts) :
 		print 'Offending packets'
 		print pktList
 		tcpSynMap.pop(tcppkt.dst)
-
 	return	
 
 
