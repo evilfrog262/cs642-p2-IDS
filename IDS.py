@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys, socket
+from Queue import *
 import dpkt
 
 ARPMap = {
@@ -12,14 +13,21 @@ ARPMap = {
 PORT_LIMIT = 100
 
 hostToPortMap = {}
+tcpSynMap = {}
 
 class PortScan :
 	def __init__(self) :
 		self.port = 0;
-		self.ip = 0;
+		self.src = 0;
 		self.dst = 0;
 		self.num = 0;
 	
+class TcpSynPkt :
+	def __init__(self) :
+		self.src = 0;
+		self.dst = 0;
+		self.num = 0;
+		self.ts = 0;
 
 def formatMAC(MACaddr) :
 	str = ':'.join(hex.encode('hex') for hex in MACaddr)
@@ -35,29 +43,66 @@ def checkARPSpoof(arp, pktNum) :
 		print 'Advertised MAC: ' + formatMAC(arp.sha) 
 	return
 
-def checkPortScanTCP(ip, tcp, pktNum) :
-	print 'source: ' + formatIP(ip.src)
-	print 'dest: ' + formatIP(ip.dst)
+def checkPortScan(ip, port, pktNum) :
 	scan = PortScan()
 	scan.src = ip.src
 	scan.num = pktNum
-	scan.port = tcp.dport
+	scan.port = port
 	scan.dst = ip.dst
 	# if this ip is already in the table
-	if scan.src in hostToPortMap.keys() :
+	if scan.dst in hostToPortMap.keys() :
 		# if it is not a new port ignore it
-		for x in hostToPortMap[scan.src] :
+		for x in hostToPortMap[scan.dst] :
 			if x.port == scan.port :
 				return
 		# if it is a new port add it
-		hostToPortMap[scan.src].append(scan)
+		hostToPortMap[scan.dst].append(scan)
 	# if this ip is not already in the table
-	else : 
+	else :
+		print 'Detecting port activity for new IP: ' + formatIP(scan.dst)
 		portList = [scan]
-		hostToPortMap[scan.src] = portList
-
-
+		hostToPortMap[scan.dst] = portList
 	return
+
+def checkPortScanTCP(ip, tcp, pktNum) :
+	checkPortScan(ip, tcp.dport, pktNum)
+	return
+
+def checkPortScanUDP(ip, udp, pktNum) :
+	checkPortScan(ip, udp.dport, pktNum)
+	return
+
+def checkSYNFlood(ip, tcp, pktNum, ts) :
+	tcppkt = TcpSynPkt()
+	tcppkt.src = ip.src
+	tcppkt.dst = ip.dst
+	tcppkt.num = pktNum
+	tcppkt.ts = ts
+	if tcppkt.dst in tcpSynMap.keys() :
+		q = tcpSynMap[tcppkt.dst]
+		for pkt in q :
+			if (tcppkt.ts - pkt.ts) >= 1 :
+				q.remove(pkt) #removes item from queue
+			else :
+				break
+		q.append(tcppkt)
+	else :
+		q = [] 
+		q.append(tcppkt)
+		tcpSynMap[tcppkt.dst] = q
+	if len(tcpSynMap[tcppkt.dst]) > 100 :
+		print 'Warning: SYN flood detected'
+		print 'Source IP: ' + formatIP(tcppkt.src)
+		print 'Dest IP: ' + formatIP(tcppkt.dst)
+		pktList = []
+		for pkt in tcpSynMap[tcppkt.dst] :
+			pktList.append(pkt.num)
+		print 'Offending packets'
+		print pktList
+		tcpSynMap.pop(tcppkt.dst)
+
+	return	
+
 
 # Beginning of main execution
 if len(sys.argv) != 2 :
@@ -82,10 +127,10 @@ for ts, buf in pcap :
 			tcp = ipdata
 			if (tcp.flags & dpkt.tcp.TH_SYN) != 0 :
 				checkPortScanTCP(ethdata, tcp, pktNum)
-		
+				checkSYNFlood(ethdata, tcp, pktNum, ts)
 		elif type(ipdata) is dpkt.udp.UDP :
 			udp = ipdata
-			print 'udp'
+			checkPortScanUDP(ethdata, udp, pktNum)
 	pktNum += 1
 
 for ipaddr in hostToPortMap :
