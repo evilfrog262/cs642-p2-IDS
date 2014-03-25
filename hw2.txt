@@ -1,0 +1,130 @@
+HTTP
+1. www.vine.com
+   aws.amazon.com
+   www.bookworm.com
+2. bing -- chicago metro
+baidu -- Dong xian shu shu chamber Lan
+amazon -- adventures in stochastic processes
+FTP
+1. username = shiningmoon
+   password = public
+2. In active FTP, the client connects to the server's command port (usually port 21) from an unprivileged port. The client
+then listens on the next port, the original port + 1. It issues a PORT command to the server and it waits for the
+server to connect to this port from its data port (usually port 20). This can be a problem because firewalls usually
+don't allow an outside system to create a connection like this and might block this.
+   In passive FTP, the client initiates both the connection to the command port and the connection to the data port. The
+command port connection is made the same was as in active FTP, but instead of issuing a PORT command the client issues
+a PASV command. The server then tells the client which unprivileged port it should make a connection with and the
+client does this.
+3. There are no PORT requests from the client and therefore not active FTP connections.
+4. All of the requests are PASV and therefore passive FTP connections.
+5. dragon.zip
+ARP.java
+L2Switch.java
+phase1.html
+TRACEROUTE
+1. 192.168.0.100
+2. 74.125.225.46
+3. 192.168.0.1 (Interface)
+   10.131.180.1
+   96.34.20.20
+   96.34.17.95
+   96.34.16.112
+   96.34.16.77
+   96.34.2.4
+   96.34.0.7
+   96.34.0.9
+   96.34.3.9
+   96.34.152.30
+   209.85.254.120
+   209.85.250.28
+   74.125.225.46
+4. Private IP
+   Charter Communications
+   Google Inc
+POP
+1. username = cs155@dummymail.com
+password = whitehat
+2. 5 messages
+3. From: joe <cs155@dummymail.com>
+To: cs155@dummymail.com
+Subject: foobar
+Date: Fri, 23 Apr 2010 08:20:52
+
+From: joe <cs155@dummymail.com>
+To: cs155@dummymail.com
+Subject: can you see this subject?
+Date: Fri, 23 Apr 2010 08:23:25
+
+From: hariny <hariny@stanford.edu>
+To: cs155@dummymail.com
+Subject: test message
+Date: Fri, 23 Apr 2010 10:25:00
+
+From: hariny <hariny@stanford.edu>
+To: cs155@dummymail.com
+Subject: geology rocks!
+Date: Fri, 23 Apr 2010 08:22:29
+
+From: hariny <hariny@stanford.edu>
+To: cs155@dummymail.com
+Subject: wassup
+Date: Fri, 23 Apr 2010 08:21:51
+
+
+SYN DoS ATTACK
+  pcap_next() may return NULL for a variety of reasons, according to the documentation. This will happen if an error
+occurs or if no packets are read from a live capture because they were discarded/filtered out/timed out. There is no
+way to tell the difference between these cases, and the program simply terminates when a NULL packet is found. This
+might work when reading from a save file but could cause problems when reading packets live. An attacker would simply
+have to send a packet that would cause a NULL return value and then the IDS program would terminate and their
+subsequent SYN packets would not be logged. To fix this program, the while loop should keep iterating even if the
+packet pointer is NULL, and it should then check for this NULL case inside the loop and discard the packet if necessary.
+  Not all packets received will contain an IP header followed by a TCP header. The IP header may be followed by another
+type of header such as UDP or ICMP. The IP header should be checked first to see what type of header follows it -- using
+the ip_p data member of the struct -- and the second part of the condition that checks for the TCP SYN flag should only
+be checked if ip_p == 0x06. Otherwise the packet does not contain a TCP header at all and will not need to be logged. If
+not fixed, an attacker might first send a non-TCP packet. Then, when the IDS program tries to follow the pointer
+tcpheader->th_flags it will refer to a junk address. This could cause a segmentation fault and crash the program,
+allowing the attacker to then continue sending SYN packets unlogged.
+  When the snprintf() starts copying the src and dst data into the reportBuf, it copies ip_len bytes, which is incorrect.
+It should be copying 16 bytes according to the size of the reportBuf[] array. Since snprintf() stops writing when it
+encounters a NULL character though, this should still work.
+  The IP header could be modified by an attacker and the ip_hl data member could be set to an arbitrary value. This could be
+exploited in a variety of ways. For example, the tcpheader pointer could point into the payload instead of the beginning
+of the TCP header. Then when the check for the SYN flag is performed, the program will not actually be looking for the flag
+in the correct location and the check will be bypassed. This way all of the SYN flood packets will go unlogged. This
+could be avoided if the program validtaed the ip_hl to make sure it is a reasonable value.
+  Since the payload is also based off of the ip_hl value that the attacker can control, the payload pointer could be set to
+point to an arbitrary offset in memory. This could be exploited to make the program crash and stop logging packets due to
+a segmentation fault, for example. This could be fixed in the same was as the above problem -- by verifying that the ip_len
+data member is reasonable. The tcp length in the th_off data member should also be validated, because it could be
+exploited in the same way.
+  An integer overflow error could occur in logpacket() when declaring the reportBuf array. The user can set the ip_len value
+to be anything they want. If they set it to be a large enough value, then when 16 is added it could overflow and become
+a negative integer. Assigning a negative length to an array is undefined behavior in C and, when filling in the array,
+would cause a crash. This would again allow the attacker to send their packets without being logged. Input validation
+is the solution again here.
+
+
+DNS SERVER
+1. DNS poisoning could be used by a corporate competitor to change the DNS cache record for a commonly requested url to point
+to the IP address of any website they want. This will redirect all hosts using that DNS server to a different website
+than they expect when they intend to visit the common site. This could be exploited in a variety of ways, including
+directing the hosts to the competitor's website or blocking the hosts' access to a website that is important for the
+business to use to run effectively. This would be easiest for an attacker to do if the DNS server used sequential query
+IDs instead of random query IDs. It would also be easiest if the DNS server allowed recursive queries from outside the
+business, so that the bad guy can send DNS queries that the server will then forward to other servers.
+   For the DNS cache poisoning to work, the attacker could send a DNS query for the website/hostname that they want to block.
+If the DNS server allows recursive queries, it will then send the same request to another server higher up in the hierarchy.
+While the DNS server is requesting this information from other servers, the attacker floods the original DNS server with
+forged replies that map the chosen hostname to the IP address of their webserver. In order for this answer to be accepted,
+the query ID (QID) of the reply has to match the QID of the request, and it has to arrive before the legitimate reply does.
+If the QIDs are incremented in order, it is fairly easy for the attacker to quickly guess which QID they should use. They
+can see what QID the DNS server is using by getting a user to look up their hostname or making the request themselves.
+Since they are authoritative for that hostname, the request will eventually come to their server, and this will include the
+QID. Then they just need to flood the DNS server with forged replies, starting with this QID and incrementing from there.
+If they can do this more quickly than the legitimate nameserver, then the DNS server will cache this false reply and ignore
+the real one that it gets later. Until the cache entry expires when the TTL reaches 0, all of the hosts using the DNS
+server will be re-directed to the competitor's webserver when they attempt to reach the targeted hostname.
+
